@@ -1,6 +1,4 @@
-import os
 from dataclasses import dataclass
-from pathlib import Path
 
 
 @dataclass
@@ -68,7 +66,7 @@ def patch_mtree_text(mtree_text: str, updates: dict[str, FileMetadata]) -> str:
 
     for rel_path, metadata in updates.items():
         if rel_path not in entries:
-            raise SystemExit(f"mtree entry for {rel_path!r} not found")
+            raise Exception(f"mtree entry for {rel_path!r} not found")
 
         tokens = lines[entries[rel_path].line_index].split()
         new_tokens = [tokens[0]]
@@ -83,9 +81,9 @@ def patch_mtree_text(mtree_text: str, updates: dict[str, FileMetadata]) -> str:
             new_tokens.append(token)
 
         if "size" not in seen:
-            new_tokens.append(f"size={metadata.size}")
+            raise Exception(f"mtree entry for {rel_path!r} missing size")
         if "sha256digest" not in seen:
-            new_tokens.append(f"sha256digest={metadata.sha256digest}")
+            raise Exception(f"mtree entry for {rel_path!r} missing sha256digest")
 
         lines[entries[rel_path].line_index] = " ".join(new_tokens)
 
@@ -93,8 +91,3 @@ def patch_mtree_text(mtree_text: str, updates: dict[str, FileMetadata]) -> str:
     if mtree_text.endswith("\n"):
         new_text += "\n"
     return new_text
-def set_mtime_from_entry(path: Path, entry: MtreeEntry | None) -> None:
-    if entry is None or "time" not in entry.attrs:
-        return
-    timestamp = float(entry.attrs["time"])
-    os.utime(path, (path.stat().st_atime, timestamp))

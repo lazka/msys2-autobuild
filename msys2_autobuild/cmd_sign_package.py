@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .mtree import FileMetadata, parse_mtree_entries, patch_mtree_text, set_mtime_from_entry
+from .mtree import FileMetadata, MtreeEntry, parse_mtree_entries, patch_mtree_text
 
 PACKAGE_METADATA_FILES = {
     ".BUILDINFO",
@@ -80,6 +80,13 @@ def sha256sum(path: Path) -> str:
 
 def get_file_metadata(path: Path) -> FileMetadata:
     return FileMetadata(size=path.stat().st_size, sha256digest=sha256sum(path))
+
+
+def set_mtime_from_entry(path: Path, entry: MtreeEntry | None) -> None:
+    if entry is None or "time" not in entry.attrs:
+        return
+    timestamp = float(entry.attrs["time"])
+    os.utime(path, (path.stat().st_atime, timestamp))
 
 
 def iter_sign_batches(base_args: list[str], files: list[Path], max_chars: int = 28000) -> list[list[str]]:
